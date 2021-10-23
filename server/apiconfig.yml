@@ -1,0 +1,4 @@
+api:
+  SECRET_KEY: CrujientePenguins
+economy:
+  base_points: 100

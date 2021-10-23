@@ -2,14 +2,85 @@ import contextlib
 import sqlite3
 import traceback
 from sqlite3 import Cursor
-from typing import List, Union
+from typing import List, Union, Tuple, Optional
 
 tables = {
     "users": ("user_id", "user", "password"),
     "points": ("user_id", "points_available"),
     "coupon_auction": ("coupon_id", "max_bid", "winner_id", "closeout_time"),
-    "bidding_log": ("bid_id", "user_id", "coupon_id", "points_spent", "timestamp")
+    "bidding_log": ("user_id", "coupon_id", "points_spent", "timestamp")
 }
+
+column_types = {
+    "user_id": "TEXT",
+    "user": "TEXT",
+    "password": "TEXT",
+    "coupon_id": "TEXT",
+    "winner_id": "TEXT",
+    "points_available": "INTEGER",
+    "points_spent": "INTEGER",
+    "max_bid": "INTEGER",
+    "closeout_time": "timestamp",
+    "timestamp": "timestamp"
+}
+
+
+def are_columns_valid(table: str, check_columns: Tuple[str]):
+    if len(check_columns) == 1 and check_columns[0] == "*":
+        return True
+    valid_columns = tables[table]
+    for col in check_columns:
+        if col not in valid_columns:
+            return False
+
+    return True
+
+
+class WhereConstraint:
+    def __init__(self, table: str, column: str, constraint: Union[str, int, float, bool], validate=True):
+        if validate:
+            if table not in tables.keys():
+                raise ValueError(f"Table {table} does not exist.")
+            if column not in tables[table]:
+                raise ValueError(f"{column} is not a column in table {table}. Valid tables: {table}")
+        self.table = table
+        self.constraint_string = f"{column} = {constraint}"
+
+    @staticmethod
+    def _from_string(table, string: str):
+        new_constraint = WhereConstraint(table, "", "", False)
+        new_constraint.constraint_string = string
+        return new_constraint
+
+    def __copy__(self):
+        return WhereConstraint._from_string(self.table, self.constraint_string)
+
+    def __add__(self, other):
+        if not isinstance(other, WhereConstraint):
+            raise NotImplementedError
+        if other.table != self.table:
+            raise ValueError(f"Cannot combine Constraints for different tables")
+
+        constraint_string = f"({self.constraint_string}) OR ({other.constraint_string})"
+        return WhereConstraint._from_string(self.table, constraint_string)
+
+    def __mul__(self, other):
+        if not isinstance(other, WhereConstraint):
+            raise NotImplementedError
+        if other.table != self.table:
+            raise ValueError(f"Cannot combine Constraints for different tables")
+
+        constraint_string = f"({self.constraint_string}) OR ({other.constraint_string})"
+        return WhereConstraint._from_string(self.table, constraint_string)
+
+    def __or__(self, other):
+        return self + other
+
+    def __and__(self, other):
+        return self * other
+
+    def __str__(self):
+        return self.constraint_string
 
 
 class Database:
@@ -22,7 +93,8 @@ class Database:
         query_results = []
         if isinstance(instructions, str):
             instructions = [instructions]
-        with contextlib.closing(sqlite3.connect(self.db)) as connection:
+        with contextlib.closing(
+                sqlite3.connect(self.db, detect_types=sqlite3.PARSE_COLNAMES | sqlite3.PARSE_DECLTYPES)) as connection:
             with connection as cur:
                 cur: Cursor = cur
                 for instruction in instructions:
@@ -32,41 +104,86 @@ class Database:
                     except sqlite3.OperationalError as error:
                         print(f"Encountered a problem with executing instruction: {instruction}")
                         traceback.print_exception(type(error), error, error.__traceback__)
-                        query_results = False
 
         if len(query_results) == 1:
             return query_results[0]
-
         return query_results
 
     def create_table(self):
-        instructions = [f"""CREATE TABLE {table_name}
-                            {str(columns)}""" for table_name, columns in tables.items()]
+        def setup_columns(_columns):
+            columns_text = "("
+            for column in _columns:
+                columns_text += f"{column} {column_types[column]}, "
+            return columns_text[:-2] + ")"
+
+        instructions = [f"""CREATE TABLE IF NOT EXISTS {table_name}
+                            {setup_columns(columns)}""" for table_name, columns in tables.items()]
         return self.execute_instructions(instructions)
 
-    def insert_into_table(self, table: str, **kwargs):
+    def insert_into_table(self, table: str, **column_values):
         """
         Usage example: insert_into_table("table name", column_one=value, column_two=value, ...)
         """
-        if table not in tables:
-            raise ValueError(f"Table {table} not found. Available tables: {str(list(kwargs.keys()))}.")
+        if table not in tables.keys():
+            raise ValueError(f"Table {table} not found. Available tables: {str(list(tables.keys()))}.")
 
-        columns = tables[table]
-        if list(columns) != list(kwargs.keys()):
-            raise ValueError(f"Missing entries for table {table}. Expected: {str(list(kwargs.keys()))}.")
+        columns: tuple = tables[table]
+        if list(columns) != list(column_values.keys()):
+            raise ValueError(f"Missing entries for table {table}. Expected: {str(columns)}.")
 
-        instruction = f"""INSERT INTO {table} VALUES {str(tuple(kwargs.values()))}"""
+        # order values according to table definition
+        values = [None] * len(columns)
+        for key in column_values.keys():
+            idx = columns.index(key)
+            values[idx] = column_values[key]
+
+        instruction = f"""INSERT INTO {table} VALUES {str(tuple(values))}"""
+        return self.execute_instructions(instruction)
+
+    def select_from_table(self, table: str, select_columns: Tuple[str, ...], constraint: Optional[WhereConstraint]):
+        if table not in tables.keys():
+            raise ValueError(f"Table {table} not found.")
+        if len(select_columns) == 0:
+            raise ValueError(f"Must select at least one column.")
+        if not are_columns_valid(table, select_columns):
+            raise ValueError(f"Cannot select columns {select_columns} from {table}. Valid columns: {tables[table]}.")
+
+        column_selection = ""
+        for column in select_columns:
+            column_selection += f"{column}, "
+
+        instruction = f"""SELECT {column_selection[:-2]} FROM {table}"""
+        if constraint:
+            instruction += f" WHERE {str(constraint)}"
+        return self.execute_instructions(instruction)
+
+    def update_table_rows(self, table: str, constraint: Optional[WhereConstraint], **column_values):
+        if table not in tables.keys():
+            raise ValueError(f"Table {table} not found. Available tables: {str(list(tables.keys()))}.")
+        if len(column_values) == 0:
+            raise ValueError(f"Nothing to update with.")
+        if not are_columns_valid(table, tuple(column_values.keys())):
+            raise ValueError(
+                f"Cannot update columns {tuple(column_values.keys())} from {table}. Valid columns: {tables[table]}.")
+
+        set_clause = ""
+        for column, value in column_values.items():
+            set_clause += f"{column} = {value}, "
+
+        instruction = f"""UPDATE {table} SET {set_clause[:-2]}"""
+        if constraint:
+            instruction += f" WHERE {str(constraint)}"
+        return self.execute_instructions(instruction)
+
+    def delete_table_rows(self, table: str, constraint: WhereConstraint):
+        if table not in tables.keys():
+            raise ValueError(f"Table {table} not found. Available tables: {str(list(tables.keys()))}.")
+        instruction = f"""DELETE FROM {table}"""
+        if constraint:
+            instruction += f" WHERE {str(constraint)}"
         return self.execute_instructions(instruction)
 
     def select_user_tuple(self, username):
-        instructions = f"""SELECT user_id, user, password FROM users WHERE user = '{username}'"""
-        row = self.execute_instructions(instructions)
-        return row
-
-    # Select Statements probably not needed b/c self.execute_instructions()
-    def select_user_table(self, user_id, user):
-        pass
-
-    def select_points_table(self, user_id):
-        pass
-
+        return self.select_from_table("users",
+                                      ("user_id", "user", "password"),
+                                      WhereConstraint("users", "user", f"'{username}'"))

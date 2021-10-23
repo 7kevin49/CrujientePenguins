@@ -1,31 +1,49 @@
+import datetime
 from functools import wraps
 from uuid import uuid4
 
+import jwt
+import yaml
 from flask import Flask, request
 from flask_restful import Resource, Api, reqparse
 from werkzeug.security import generate_password_hash, check_password_hash
-import jwt
 
-import data
+from data import Database, WhereConstraint
+
+with open("apiconfig.yml", "r") as ymlfile:
+    config = yaml.safe_load(ymlfile)
+
+#
+# The following variables are for the API configuration
+#
 
 app = Flask(__name__)
-app.config["SECRET_KEY"] = "CrujientePenguins"      # This is the key used to encrypt JSON Web Tokens (JWTs)
 api = Api(app, prefix="/api/v1")
-database = data.Database()
+database = Database()
+
+# This is the key to encrpy the JSON Web Tokens with
+app.config["SECRET_KEY"] = config["api"].get("SECRET_KEY", "CrujientePenguins")
+
+#
+# The following constants are for configuring the points economy
+#
+
+# Points given to newly registered users
+BASE_POINTS = config["economy"].get("base_points", 100)
 
 
-"""
-The following methods are for JWT Authentication.
-"""
-
+#
+# The following methods are for JWT Authentication.
+#
 
 def requires_jwt(f):
     """
     A decorator that enforces an authorization policy for API requests. Requests to these methods must include a
     valid JWT auth_token in their headers.
 
-    API calls decorated with this will receive the contents of the decoded token in their **kwargs.
+    API calls decorated with this will have access the contents of the decoded token with their **kwargs.
     """
+
     @wraps(f)
     def decorator(*args, **kwargs):
         token = None
@@ -43,13 +61,13 @@ def requires_jwt(f):
             return {'message': 'invalid auth_token'}, 401
 
         return f(*args, **kwargs)
+
     return decorator
 
 
-"""
-The following classes serve as API endpoint resources for the server.
-"""
-
+#
+# The following classes serve as API endpoint resources for the server.
+#
 
 class AuthenticationAPI(Resource):
     def __init__(self):
@@ -75,7 +93,7 @@ class LoginAPI(AuthenticationAPI):
                 token = jwt.encode(token_payload, app.config["SECRET_KEY"])
                 return {"token": token.decode("UTF-8")}
 
-        return {"message": "invalid login"},  401
+        return {"message": "invalid login"}, 401
 
 
 class RegistrationAPI(AuthenticationAPI):
@@ -84,52 +102,155 @@ class RegistrationAPI(AuthenticationAPI):
         uuid = str(uuid4())
         args = self.parser.parse_args()
         hashed_password = generate_password_hash(args["password"])
-        if not database.insert_into_table("users", user_id=uuid, user=args["username"], password=hashed_password):
-            return {"message": "a problem occurred"}, 404
+
+        # Attempt to register the new user
+        database.insert_into_table("users", user_id=uuid, user=args["username"], password=hashed_password)
+        # Give the user some points to start out with
+        database.insert_into_table("points", user_id=uuid, points_available=BASE_POINTS)
 
 
 class BiddingAPI(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("coupon_id", required=True)
+        self.parser.add_argument("bid_amount", required=True, type=int)
+        super().__init__()
+
     @requires_jwt
     def get(self, *args, **kwargs):
         # gets a user's bids
-        pass
+        uuid = kwargs["uuid"]
+        bids = database.select_from_table("bidding_log",
+                                          ("*",),
+                                          WhereConstraint("bidding_log", "user_id", f"'{uuid}'"))
+        return {"bids_made": bids}
 
     @requires_jwt
     def put(self, *args, **kwargs):
         # creates a new bid onto the database for the user
-        pass
+        uuid = kwargs["uuid"]
+        args = self.parser.parse_args()
+        coupon_id = args["coupon_id"]
+        bid_amount = args["bid_amount"]
+
+        points = database.select_from_table("points",
+                                            ("points_available",),
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+        points -= bid_amount
+        if points < 0:
+            return {"message": "Cannot bid more points than available!"}, 400
+
+        # set the bid
+        database.insert_into_table("bidding_log",
+                                   user_id=uuid,
+                                   coupon_id=coupon_id,
+                                   points_spent=bid_amount,
+                                   timestamp=str(datetime.datetime.now()))
+        # remove points
+        database.update_table_rows("points",
+                                   WhereConstraint("points", "user_id", f"'{uuid}'"),
+                                   points_available=points)
+
+        self.update_coupon_winner(coupon_id, bid_amount, uuid)
 
     @requires_jwt
     def patch(self, *args, **kwargs):
         # patches a user's existing bid
-        pass
+        uuid = kwargs["uuid"]
+        args = self.parser.parse_args()
+        coupon_id = args["coupon_id"]
+        bid_amount = args["bid_amount"]
+
+        constraint = WhereConstraint(
+            "bidding_log",
+            "user_id",
+            f"'{uuid}'") & WhereConstraint(
+            "bidding_log",
+            "coupon_id",
+            f"'{coupon_id}'")
+
+        previous_bid = database.select_from_table(
+            "bidding_log",
+            ("points_spent",),
+            constraint
+        )[0]
+
+        delta_bid = bid_amount - previous_bid
+        if delta_bid < 0:
+            return {"message": "Cannot bid less than a previous bid!"}, 400
+
+        points = database.select_from_table("points",
+                                            ("points_available",),
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+        points -= delta_bid
+        if points < 0:
+            return {"message": "Cannot bid more points than available!"}, 400
+
+        # update the bid
+        database.update_table_rows("bidding_log",
+                                   constraint,
+                                   user_id=f"'{uuid}'",
+                                   coupon_id=coupon_id,
+                                   points_spent=bid_amount,
+                                   timestamp=f"'{str(datetime.datetime.now())}'")
+        # remove points
+        database.update_table_rows("points",
+                                   WhereConstraint("points", "user_id", f"'{uuid}'"),
+                                   points_available=points)
+
+        self.update_coupon_winner(coupon_id, bid_amount, uuid)
+
+    def update_coupon_winner(self, coupon_id, this_bid, uuid):
+        previous_max_bid = database.select_from_table(
+            "coupon_auction",
+            ("max_bid",),
+            WhereConstraint("coupon_auction", "coupon_id", f"'{coupon_id}'")
+        )[0]
+        if this_bid <= previous_max_bid:
+            return
+
+        database.update_table_rows(
+            "coupon_auction",
+            WhereConstraint("coupon_auction", "coupon_id", f"'{coupon_id}'"),
+            max_bid=this_bid,
+            winner_id=f"'{uuid}'"
+        )
 
 
 class CouponAPI(Resource):
     def get(self, *args, **kwargs):
         # gets the auction's coupon information
-        pass
+        coupons = database.select_from_table("coupon_auction", ("*",), None)
+        return {"coupon_auction": coupons}
 
 
 class PointsAPI(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("delta_points", required=True, type=int)
+
     @requires_jwt
     def get(self, *args, **kwargs):
         # gets a user's bidding points
-        pass
+        uuid = kwargs["uuid"]
+        points = database.select_from_table("points",
+                                            ("points_available",),
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+        return {"points_available": points}
 
     @requires_jwt
     def patch(self, *args, **kwargs):
-        # updates a user's bidding points
-        pass
-
-
-class TestAPI(Resource):
-    def get(self, *args, **kwargs):
-        # checks server is up
-        return {"Hello": "world!"}
-
-    def post(self, *args, **kwargs):
-        pass
+        # Adds points to a user's bid
+        uuid = kwargs["uuid"]
+        args = self.parser.parse_args()
+        delta_points = args["delta_points"]
+        current_points = database.select_from_table("points",
+                                                    ("points_available",),
+                                                    WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+        next_points = current_points + delta_points
+        database.update_table_rows("points",
+                                   WhereConstraint("points", "user_id", f"'{uuid}'"),
+                                   points_available=next_points)
 
 
 api.add_resource(LoginAPI, '/login')
@@ -137,7 +258,6 @@ api.add_resource(RegistrationAPI, '/register')
 api.add_resource(BiddingAPI, '/bidding')
 api.add_resource(CouponAPI, '/coupons')
 api.add_resource(PointsAPI, '/points')
-api.add_resource(TestAPI, '/test')
 
 
 def main():

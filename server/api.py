@@ -357,7 +357,7 @@ auction_scheduler.add_job(check_auctions, trigger=CronTrigger(second=0))
 
 
 def main():
-    database.create_table()
+    database.create_tables()
     auction_scheduler.start()
     check_auctions()
     app.run(debug=True, use_reloader=False)

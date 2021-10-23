@@ -318,6 +318,9 @@ api.add_resource(PointsAPI, '/points')
 #
 
 def check_auctions():
+    """
+    Handles closing auctions and determining how many new auctions to make.
+    """
     auctions = database.select_from_table(
         "coupon_auction",
         ("*",),
@@ -335,6 +338,9 @@ def check_auctions():
 
 
 def create_coupons(n: int):
+    """
+    Creates n new coupon auctions.
+    """
     max_bid = 0
     winner_id = "''"
     now = datetime.datetime.now()

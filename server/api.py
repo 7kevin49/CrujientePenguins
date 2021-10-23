@@ -141,7 +141,7 @@ api.add_resource(TestAPI, '/test')
 
 
 def main():
-    # database.create_table()
+    database.create_table()
     app.run(debug=True, use_reloader=False)
 
 

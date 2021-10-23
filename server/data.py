@@ -7,16 +7,11 @@ from typing import List, Union, Tuple, Optional
 tables = {
     "users": ("user_id", "user", "password"),
     "points": ("user_id", "points_available"),
-    "coupon_auction": ("coupon_id", "max_bid", "winner_id", "closeout_time"),
+    "coupon_auction": ("coupon_id", "max_bid", "winner_id", "closeout_time", "description"),
     "bidding_log": ("user_id", "coupon_id", "points_spent", "timestamp")
 }
 
 column_types = {
-    "user_id": "TEXT",
-    "user": "TEXT",
-    "password": "TEXT",
-    "coupon_id": "TEXT",
-    "winner_id": "TEXT",
     "points_available": "INTEGER",
     "points_spent": "INTEGER",
     "max_bid": "INTEGER",
@@ -37,18 +32,18 @@ def are_columns_valid(table: str, check_columns: Tuple[str]):
 
 
 class WhereConstraint:
-    def __init__(self, table: str, column: str, constraint: Union[str, int, float, bool], validate=True):
+    def __init__(self, table: str, column: str, constraint: Union[str, int, float, bool], op="=", validate=True):
         if validate:
             if table not in tables.keys():
                 raise ValueError(f"Table {table} does not exist.")
             if column not in tables[table]:
                 raise ValueError(f"{column} is not a column in table {table}. Valid tables: {table}")
         self.table = table
-        self.constraint_string = f"{column} = {constraint}"
+        self.constraint_string = f"{column} {op} {constraint}"
 
     @staticmethod
     def _from_string(table, string: str):
-        new_constraint = WhereConstraint(table, "", "", False)
+        new_constraint = WhereConstraint(table, "", "", validate=False)
         new_constraint.constraint_string = string
         return new_constraint
 
@@ -105,15 +100,13 @@ class Database:
                         print(f"Encountered a problem with executing instruction: {instruction}")
                         traceback.print_exception(type(error), error, error.__traceback__)
 
-        if len(query_results) == 1:
-            return query_results[0]
         return query_results
 
     def create_table(self):
         def setup_columns(_columns):
             columns_text = "("
             for column in _columns:
-                columns_text += f"{column} {column_types[column]}, "
+                columns_text += f"{column} {column_types.get(column, 'TEXT')}, "
             return columns_text[:-2] + ")"
 
         instructions = [f"""CREATE TABLE IF NOT EXISTS {table_name}

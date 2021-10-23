@@ -1,11 +1,14 @@
 import datetime
 from functools import wraps
+from random import choice
 from uuid import uuid4
 
 import jwt
 import yaml
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, request
-from flask_restful import Resource, Api, reqparse
+from flask_restful import Resource, Api, reqparse, fields, marshal
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from data import Database, WhereConstraint
@@ -21,6 +24,21 @@ app = Flask(__name__)
 api = Api(app, prefix="/api/v1")
 database = Database()
 
+bid_fields = {
+    "user_id": fields.String,
+    "coupon_id": fields.String,
+    "points_spent": fields.Integer,
+    "timestamp": fields.DateTime
+}
+
+coupon_fields = {
+    "id": fields.String,
+    "max_bid": fields.Integer,
+    "winner_id": fields.String,
+    "closeout_time": fields.DateTime,
+    "description": fields.String
+}
+
 # This is the key to encrpy the JSON Web Tokens with
 app.config["SECRET_KEY"] = config["api"].get("SECRET_KEY", "CrujientePenguins")
 
@@ -30,6 +48,10 @@ app.config["SECRET_KEY"] = config["api"].get("SECRET_KEY", "CrujientePenguins")
 
 # Points given to newly registered users
 BASE_POINTS = config["economy"].get("base_points", 100)
+
+# Auction data
+NUM_AUCTIONS = config["economy"].get("num_active_auctions", 5)
+COUPON_DESCRIPTIONS = config["economy"].get("coupon_descriptions", [""])
 
 
 #
@@ -83,7 +105,7 @@ class LoginAPI(AuthenticationAPI):
         args = self.parser.parse_args()
         username = args["username"]
         password = args["password"]
-        _data = database.select_user_tuple(username)
+        _data = database.select_user_tuple(username)[0]
         if _data:
             uuid, _, hashed_password = _data
             if check_password_hash(hashed_password, password):
@@ -123,7 +145,15 @@ class BiddingAPI(Resource):
         bids = database.select_from_table("bidding_log",
                                           ("*",),
                                           WhereConstraint("bidding_log", "user_id", f"'{uuid}'"))
-        return {"bids_made": bids}
+        converted_bids = []
+        for bid in bids:
+            converted_bids.append({
+                "user_id": bid[0],
+                "coupon_id": bid[1],
+                "points_spent": bid[2],
+                "timestamp": bid[3]
+            })
+        return marshal({"bids_made": converted_bids}, {"bids_made": fields.List(fields.Nested(bid_fields))})
 
     @requires_jwt
     def put(self, *args, **kwargs):
@@ -135,7 +165,7 @@ class BiddingAPI(Resource):
 
         points = database.select_from_table("points",
                                             ("points_available",),
-                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0][0]
         points -= bid_amount
         if points < 0:
             return {"message": "Cannot bid more points than available!"}, 400
@@ -173,7 +203,7 @@ class BiddingAPI(Resource):
             "bidding_log",
             ("points_spent",),
             constraint
-        )[0]
+        )[0][0]
 
         delta_bid = bid_amount - previous_bid
         if delta_bid < 0:
@@ -181,7 +211,7 @@ class BiddingAPI(Resource):
 
         points = database.select_from_table("points",
                                             ("points_available",),
-                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0][0]
         points -= delta_bid
         if points < 0:
             return {"message": "Cannot bid more points than available!"}, 400
@@ -205,7 +235,7 @@ class BiddingAPI(Resource):
             "coupon_auction",
             ("max_bid",),
             WhereConstraint("coupon_auction", "coupon_id", f"'{coupon_id}'")
-        )[0]
+        )[0][0]
         if this_bid <= previous_max_bid:
             return
 
@@ -218,10 +248,33 @@ class BiddingAPI(Resource):
 
 
 class CouponAPI(Resource):
+    def __init__(self):
+        self.parser = reqparse.RequestParser()
+        self.parser.add_argument("include_old", default=False)
+
     def get(self, *args, **kwargs):
         # gets the auction's coupon information
-        coupons = database.select_from_table("coupon_auction", ("*",), None)
-        return {"coupon_auction": coupons}
+        args = self.parser.parse_args()
+        include_old = args["include_old"]
+        if include_old:
+            coupons = database.select_from_table("coupon_auction", ("*",), None)
+        else:
+            coupons = database.select_from_table(
+                "coupon_auction",
+                ("*", ),
+                WhereConstraint("coupon_auction", "closeout_time", f"'{str(datetime.datetime.now())}'", ">")
+            )
+        converted_coupons = []
+        for coupon in coupons:
+            converted_coupons.append({
+                "id": coupon[0],
+                "max_bid": coupon[1],
+                "winner": coupon[2],
+                "closeout_time": coupon[3],
+                "description": coupon[4],
+            })
+        return marshal({"coupon_auction": converted_coupons},
+                       {"coupon_auction": fields.List(fields.Nested(coupon_fields))})
 
 
 class PointsAPI(Resource):
@@ -235,7 +288,7 @@ class PointsAPI(Resource):
         uuid = kwargs["uuid"]
         points = database.select_from_table("points",
                                             ("points_available",),
-                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+                                            WhereConstraint("points", "user_id", f"'{uuid}'"))[0][0]
         return {"points_available": points}
 
     @requires_jwt
@@ -246,7 +299,7 @@ class PointsAPI(Resource):
         delta_points = args["delta_points"]
         current_points = database.select_from_table("points",
                                                     ("points_available",),
-                                                    WhereConstraint("points", "user_id", f"'{uuid}'"))[0]
+                                                    WhereConstraint("points", "user_id", f"'{uuid}'"))[0][0]
         next_points = current_points + delta_points
         database.update_table_rows("points",
                                    WhereConstraint("points", "user_id", f"'{uuid}'"),
@@ -260,8 +313,53 @@ api.add_resource(CouponAPI, '/coupons')
 api.add_resource(PointsAPI, '/points')
 
 
+#
+# The following methods implement regularly scheduled auction updates
+#
+
+def check_auctions():
+    auctions = database.select_from_table(
+        "coupon_auction",
+        ("*",),
+        None
+    )
+    current_time = datetime.datetime.now()
+    stale_auctions = list(filter(lambda auction: auction[-2] <= current_time, auctions))
+    for coupon_id, max_bid, winner_id, closeout_time, description in stale_auctions:
+        # TODO pick winner, clear bidding log of these bids
+        continue
+
+    auctions_deficit = NUM_AUCTIONS - len(auctions) + len(stale_auctions)
+    if auctions_deficit > 0:
+        create_coupons(auctions_deficit)
+
+
+def create_coupons(n: int):
+    max_bid = 0
+    winner_id = "''"
+    now = datetime.datetime.now()
+    closeout_time = datetime.datetime(now.year, now.month, now.day, 0, 0, 0, 0) + datetime.timedelta(days=1)
+    for _ in range(n):
+        description = choice(COUPON_DESCRIPTIONS)
+        coupon_id = str(uuid4())
+        database.insert_into_table(
+            "coupon_auction",
+            coupon_id=coupon_id,
+            max_bid=max_bid,
+            winner_id=winner_id,
+            closeout_time=str(closeout_time),
+            description=description
+        )
+
+
+auction_scheduler = BackgroundScheduler()
+auction_scheduler.add_job(check_auctions, trigger=CronTrigger(second=0))
+
+
 def main():
     database.create_table()
+    auction_scheduler.start()
+    check_auctions()
     app.run(debug=True, use_reloader=False)
 
 

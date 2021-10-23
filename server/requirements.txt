@@ -6,6 +6,8 @@
 #
 aniso8601==9.0.1
     # via flask-restful
+apscheduler==3.8.0
+    # via -r requirements.in
 click==8.0.3
     # via
     #   flask
@@ -35,15 +37,22 @@ pip-tools==6.4.0
 pyjwt==1.4.2
     # via -r requirements.in
 pytz==2021.3
-    # via flask-restful
+    # via
+    #   apscheduler
+    #   flask-restful
+    #   tzlocal
 pyyaml==6.0
     # via -r requirements.in
 six==1.16.0
-    # via flask-restful
+    # via
+    #   apscheduler
+    #   flask-restful
 tomli==1.2.1
     # via pep517
 typing-extensions==3.10.0.2
     # via importlib-metadata
+tzlocal==2.1
+    # via apscheduler
 werkzeug==2.0.2
     # via flask
 wheel==0.37.0

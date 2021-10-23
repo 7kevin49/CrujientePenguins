@@ -2,3 +2,14 @@ api:
   SECRET_KEY: CrujientePenguins
 economy:
   base_points: 100
+  num_active_auctions: 5
+  coupon_descriptions:
+    - 20% off next purchase
+    - $2 off next purchase
+    - $1 off next purchase
+    - 15% off next purchase
+    - BOGO half off select items
+    - BOGO free select items
+    - 60% off select items
+    - 10% off next purchase
+    - Free large drink with purchase of meal

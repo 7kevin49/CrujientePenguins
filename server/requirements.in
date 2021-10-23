@@ -1,0 +1,4 @@
+pip-tools
+flask
+flask-restful
+flask-httpauth

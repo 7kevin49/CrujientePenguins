@@ -32,6 +32,9 @@
             android:theme="@style/Theme.CrujientePenguins.NoActionBar">
 
         </activity>
+
+        <receiver android:name=".ReminderReceiver"
+            android:enabled="true"/>
     </application>
 
 </manifest>

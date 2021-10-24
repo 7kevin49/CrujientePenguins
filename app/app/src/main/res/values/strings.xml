@@ -2,8 +2,8 @@
     <string name="app_name">CrujientePenguins</string>
     <string name="action_settings">Settings</string>
     <!-- Strings used for fragments for navigation -->
-    <string name="first_fragment_label">First Fragment</string>
-    <string name="second_fragment_label">Second Fragment</string>
+    <string name="first_fragment_label">Crujiente Penguins</string>
+    <string name="second_fragment_label">Log In</string>
     <string name="next">Next</string>
     <string name="previous">Previous</string>
     <string name="login">Log In</string>
@@ -15,5 +15,6 @@
     <string name="register">Please register with a username and password:</string>
     <string name="password">Password</string>
     <string name="username">Username</string>
+    <string name="points_available">Points Available: </string>
     <!--    <string name=""-->
 </resources>

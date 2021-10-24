@@ -69,7 +69,7 @@ class NCRApi:
             "nep-enterprise-unit": self.nep_enterprise_unit
         }
 
-        request = requests.Request(method=method, url=f"{self.gateway}{endpoint}", headers=headers, data=data).prepare()
+        request = requests.Request(method=method, url=f"{self.gateway}{endpoint}", headers=headers, json=data).prepare()
 
         session = requests.Session()
         request.headers["Authorization"] = create_hmac(request)

@@ -13,5 +13,7 @@
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
     <string name="welcome">Welcome! Please Log In</string>
     <string name="register">Please register with a username and password:</string>
-<!--    <string name=""-->
+    <string name="password">Password</string>
+    <string name="username">Username</string>
+    <!--    <string name=""-->
 </resources>

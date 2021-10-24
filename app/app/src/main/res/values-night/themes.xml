@@ -2,13 +2,13 @@
     <!-- Base application theme. -->
     <style name="Theme.CrujientePenguins" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
         <!-- Primary brand color. -->
-        <item name="colorPrimary">@color/purple_200</item>
-        <item name="colorPrimaryVariant">@color/purple_700</item>
-        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorPrimary">#CA2E55</item>
+        <item name="colorPrimaryVariant">#003459</item>
+        <item name="colorOnPrimary">#0F1108</item>
         <!-- Secondary brand color. -->
-        <item name="colorSecondary">@color/teal_200</item>
-        <item name="colorSecondaryVariant">@color/teal_200</item>
-        <item name="colorOnSecondary">@color/black</item>
+        <item name="colorSecondary">#C1F7DC</item>
+        <item name="colorSecondaryVariant">#C3D2D5</item>
+        <item name="colorOnSecondary">#0F1108</item>
         <!-- Status bar color. -->
         <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->

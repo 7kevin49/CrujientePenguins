@@ -1,5 +1,6 @@
 package com.example.crujientepenguins;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -82,7 +83,15 @@ public class PostLogin extends Fragment {
                 Toast.makeText(getContext(), "Error: Points could not be retrieved...", Toast.LENGTH_LONG).show();
             }
         });
-
+        binding.scanQr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(getActivity(), QrCodeScanner.class);
+                intent.putExtra("auth_token",
+                        ((MainActivity) getActivity()).sessionToken.getToken());
+                startActivity(intent);
+            }
+        });
 
     }
 

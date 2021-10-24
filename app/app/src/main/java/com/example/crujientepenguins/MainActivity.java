@@ -5,8 +5,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Intent;
-import android.icu.util.Calendar;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -45,7 +43,8 @@ public class MainActivity extends AppCompatActivity {
 
     private UserService service;
     private UserServicePoints pointsService;
-//    private UserRepo repo = new UserRepo()
+
+    //    private UserRepo repo = new UserRepo()
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,14 +116,14 @@ public class MainActivity extends AppCompatActivity {
         Api.getInstance().login(login, new Callback<LoginToken>() {
             @Override
             public void onResponse
-                    (@NonNull Call <LoginToken> call, @NonNull Response <LoginToken> response){
+                    (@NonNull Call<LoginToken> call, @NonNull Response<LoginToken> response) {
                 sessionToken = response.body();
                 System.out.println(sessionToken.getToken());
                 Toast.makeText(getApplicationContext(), "Logged In", Toast.LENGTH_SHORT).show();
             }
 
             @Override
-            public void onFailure (@NonNull Call <LoginToken> call, @NonNull Throwable t){
+            public void onFailure(@NonNull Call<LoginToken> call, @NonNull Throwable t) {
 //                progressDialog.dismiss();
                 Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
             }
@@ -135,14 +134,14 @@ public class MainActivity extends AppCompatActivity {
         Api.getInstance().getPoints(sessionToken.getToken(), new Callback<PointsAvailable>() {
             @Override
             public void onResponse
-                    (@NonNull Call <PointsAvailable> call, @NonNull Response <PointsAvailable> response){
+                    (@NonNull Call<PointsAvailable> call, @NonNull Response<PointsAvailable> response) {
                 PointsAvailable points = response.body();
                 System.out.println(response.body());
                 Toast.makeText(getApplicationContext(), points.getPointsAvailable(), Toast.LENGTH_SHORT).show();
             }
 
             @Override
-            public void onFailure (@NonNull Call <PointsAvailable> call, @NonNull Throwable t){
+            public void onFailure(@NonNull Call<PointsAvailable> call, @NonNull Throwable t) {
 //                progressDialog.dismiss();
                 Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
             }

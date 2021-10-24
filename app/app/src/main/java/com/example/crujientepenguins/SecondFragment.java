@@ -11,7 +11,12 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.crujientepenguins.databinding.FragmentSecondBinding;
+import com.example.crujientepenguins.pojos.LoginProfile;
 import com.example.crujientepenguins.pojos.LoginToken;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class SecondFragment extends Fragment {
 
@@ -34,13 +39,35 @@ public class SecondFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (((MainActivity) getActivity()).sessionToken != null) {
+            NavHostFragment.findNavController(SecondFragment.this)
+                    .navigate(R.id.action_SecondFragment_to_PostLogin);
+        }
+
         binding.buttonLogIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                System.out.println(getContext());
+                String username = binding.editTextTextPersonName2.getText().toString();
+                String password = binding.editTextTextPassword.getText().toString();
+                LoginProfile login = new LoginProfile(username, password);
+                Api.getInstance().login(login, new Callback<LoginToken>() {
+                    @Override
+                    public void onResponse
+                            (@NonNull Call<LoginToken> call, @NonNull Response<LoginToken> response){
+                        ((MainActivity) getActivity()).sessionToken = response.body();
+                        Toast.makeText(getActivity().getApplicationContext(), "Logged In", Toast.LENGTH_SHORT).show();
 
-                NavHostFragment.findNavController(SecondFragment.this)
-                        .navigate(R.id.action_SecondFragment_to_PostLogin);
+                        NavHostFragment.findNavController(SecondFragment.this)
+                                .navigate(R.id.action_SecondFragment_to_PostLogin);
+                    }
+
+                    @Override
+                    public void onFailure (@NonNull Call <LoginToken> call, @NonNull Throwable t){
+                        Toast.makeText(getActivity().getApplicationContext(),
+                                "Failed",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
         });
 

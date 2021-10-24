@@ -11,6 +11,7 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.crujientepenguins.databinding.FragmentFirstBinding;
+import com.example.crujientepenguins.pojos.LoginToken;
 
 public class FirstFragment extends Fragment {
 
@@ -30,20 +31,16 @@ public class FirstFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        if (((MainActivity) getActivity()).sessionToken != null) {
+            NavHostFragment.findNavController(FirstFragment.this)
+                    .navigate(R.id.action_FirstFragment_to_SecondFragment);
+        }
+
         binding.buttonFirst.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 NavHostFragment.findNavController(FirstFragment.this)
                         .navigate(R.id.action_FirstFragment_to_SecondFragment);
-            }
-        });
-        binding.scanButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent(getActivity(), QrCodeScanner.class);
-                intent.putExtra("auth_token",
-                        ((MainActivity) getActivity()).sessionToken.getToken());
-                startActivity(intent);
             }
         });
     }

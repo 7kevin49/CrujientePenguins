@@ -27,4 +27,8 @@ public class PointsAvailable {
             points = Integer.parseInt(pointsAvailable);
         }
     }
+
+    public int getPoints() {
+        return points;
+    }
 }

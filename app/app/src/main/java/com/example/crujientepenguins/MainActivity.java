@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
-    private LoginToken sessionToken;
+    protected LoginToken sessionToken;
 
     private LoginProfile login = new LoginProfile("test", "test");
 

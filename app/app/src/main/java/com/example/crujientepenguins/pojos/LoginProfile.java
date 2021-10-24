@@ -1,4 +1,4 @@
-package com.example.crujientepenguins;
+package com.example.crujientepenguins.pojos;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.Gson;
@@ -18,6 +18,10 @@ public class LoginProfile {
 
 //    @SerializedName("token")
 //        private String token;
+
+
+    public LoginProfile() {
+    }
 
     public LoginProfile(String user, String password){
         this.username = user;

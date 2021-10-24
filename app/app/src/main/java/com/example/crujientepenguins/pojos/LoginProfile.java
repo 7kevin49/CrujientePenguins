@@ -12,12 +12,6 @@ public class LoginProfile {
     private String password;
 
     public Gson gson;
-//
-//    @SerializedName("points")
-//        private int points;
-
-//    @SerializedName("token")
-//        private String token;
 
 
     public LoginProfile() {
@@ -27,8 +21,6 @@ public class LoginProfile {
         this.username = user;
         this.password = password;
         this.gson = new Gson();
-//        this.points = points;
-//        this.token = token;
     }
 
     public String getJson() {

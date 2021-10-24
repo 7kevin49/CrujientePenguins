@@ -3,12 +3,12 @@ package com.example.crujientepenguins;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-public class LoginToken {
-    @SerializedName("token")
-    private String token;
+public class AuthToken {
+    @SerializedName("auth_token")
+    private String authToken;
 
-    public LoginToken(String token){
-        this.token = token;
+    public AuthToken(String token){
+        this.authToken = token;
     }
 
     public String getJson() {
@@ -17,10 +17,10 @@ public class LoginToken {
     }
 
     public String getToken() {
-        return token;
+        return authToken;
     }
 
     public void setToken(String token) {
-        this.token = token;
+        this.authToken = token;
     }
 }

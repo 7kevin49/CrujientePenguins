@@ -1,14 +1,10 @@
 package com.example.crujientepenguins;
 
-import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
-
-import com.google.android.material.snackbar.Snackbar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.util.Log;
 import android.view.View;
 
 import androidx.navigation.NavController;
@@ -22,6 +18,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import java.io.IOException;
+
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -39,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
     private LoginProfile login = new LoginProfile("test", "test");
 
     private UserService service;
+    private UserServicePoints pointsService;
 //    private UserRepo repo = new UserRepo()
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+
+        getPointsAvailable();
 
 
         //noinspection SimplifiableIfStatement
@@ -115,6 +119,44 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
+
+    private void getPointsAvailable() {
+        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(new Interceptor() {
+            @Override
+            public okhttp3.Response intercept(Chain chain) throws IOException {
+                Request newRequest  = chain.request().newBuilder()
+                        .header("auth_token", "" + sessionToken.getToken())
+                        .build();
+                return chain.proceed(newRequest);
+            }
+        }).build();
+
+        Retrofit retrofit = new retrofit2.Retrofit.Builder()
+                .baseUrl("http://10.0.2.2:5000/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        AuthToken authToken = new AuthToken(sessionToken.getToken());
+        pointsService = retrofit.create(UserServicePoints.class);
+        System.out.println(authToken.getJson());
+        Call<PointsAvailable> call = pointsService.getUserPoints(authToken.getToken());
+        call.enqueue(new Callback<PointsAvailable>() {
+            @Override
+            public void onResponse
+                    (@NonNull Call <PointsAvailable> call, @NonNull Response <PointsAvailable> response){
+                PointsAvailable points = response.body();
+                System.out.println(response.body());
+                Toast.makeText(getApplicationContext(), points.getPointsAvailable(), Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onFailure (@NonNull Call <PointsAvailable> call, @NonNull Throwable t){
+//                progressDialog.dismiss();
+                Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+
 
 
 }

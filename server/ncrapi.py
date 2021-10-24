@@ -1,12 +1,12 @@
 import base64
 import hashlib
-from datetime import datetime, timezone
-from dataclasses import dataclass
-from typing import ClassVar
 import hmac
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import ClassVar
+from urllib.parse import urlsplit
 
 import requests
-from urllib.parse import urlsplit
 
 from config import config
 

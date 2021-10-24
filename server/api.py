@@ -10,9 +10,9 @@ from flask import Flask, request
 from flask_restful import Resource, Api, reqparse, fields, marshal
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from config import config
 from data import Database, WhereConstraint
 from ncrapi import NCRApi
-from config import config
 
 #
 # The following variables are for the API configuration

@@ -123,6 +123,7 @@ class Database:
         Creates the tables defined by the global variables tables and column_types, if they don't already exist in
         the database.
         """
+
         def setup_columns(_columns):
             columns_text = "("
             for column in _columns:

@@ -31,7 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
-    private LoginToken sessionToken;
+    public LoginToken sessionToken;
 
     private LoginProfile login = new LoginProfile("test", "test");
 
@@ -41,6 +41,11 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.containsKey("auth_token")) {
+            sessionToken = new LoginToken(extras.getString("auth_token"));
+        }
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

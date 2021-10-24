@@ -4,7 +4,9 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".PostLogin">
+    tools:context=".PostLogin"
+    tools:layout_editor_absoluteX="0dp"
+    tools:layout_editor_absoluteY="186dp">
 
 
     <ProgressBar
@@ -16,14 +18,15 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-        app:layout_constraintVertical_bias="0.775" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.786" />
+    app:layout_constraintVertical_bias="0.775" />
 
     <TextView
         android:id="@+id/textViewPoints"
-        android:layout_width="183dp"
-        android:layout_height="28dp"
-        android:layout_marginBottom="8dp"
+        android:layout_width="317dp"
+        android:layout_height="32dp"
+        android:layout_marginBottom="4dp"
         android:fontFamily="sans-serif-medium"
         android:gravity="center_horizontal"
         android:text="@string/points_available"

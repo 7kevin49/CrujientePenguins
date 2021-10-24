@@ -67,7 +67,7 @@ public class PostLogin extends Fragment {
 //                assert points[0] != null;
                 points[0].updatePoints();
                 binding.progressBar2.setProgress(points[0].getPoints()/10);
-                String str = binding.textViewPoints.getText() + " " + points[0].getPoints();
+                String str =  "Points Available: " + points[0].getPoints();
                 System.out.println(str);
 //                TextView textView = (TextView) findViewById(R.id.textViewPoints);
 //                        container.findViewById( R.id.textViewPoints);

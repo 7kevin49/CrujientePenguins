@@ -41,6 +41,8 @@ public class FirstFragment extends Fragment {
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(getActivity(), QrCodeScanner.class);
+                intent.putExtra("auth_token",
+                        ((MainActivity) getActivity()).sessionToken.getToken());
                 startActivity(intent);
             }
         });

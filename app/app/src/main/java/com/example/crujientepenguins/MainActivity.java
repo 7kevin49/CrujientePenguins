@@ -1,5 +1,12 @@
 package com.example.crujientepenguins;
 
+import android.app.AlarmManager;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.content.Intent;
+import android.icu.util.Calendar;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -31,7 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
-    protected LoginToken sessionToken;
+    public LoginToken sessionToken;
+
 
     private LoginProfile login = new LoginProfile("test", "test");
 
@@ -41,6 +49,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        createNotificationChannel();
+
+        Bundle extras = getIntent().getExtras();
+        if (extras != null && extras.containsKey("auth_token")) {
+            sessionToken = new LoginToken(extras.getString("auth_token"));
+        }
 
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -57,6 +71,13 @@ public class MainActivity extends AppCompatActivity {
                 hitApiCall();
             }
         });
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        setAlarm();
     }
 
     @Override
@@ -126,6 +147,35 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void setAlarm() {
+        Intent intent = new Intent(this, ReminderReceiver.class);
+        int alarm_id = 10000;
+        PendingIntent pendingIntent = PendingIntent.getBroadcast(
+                this,
+                alarm_id,
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT);
+        AlarmManager alarmManager = getSystemService(AlarmManager.class);
+        alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+                10000L,
+                60000L,
+                pendingIntent);
+    }
+
+    private void createNotificationChannel() {
+        CharSequence name = "CrujientePenguinsChannel";
+        String description = "Channel for Crujiente Penguins Reminders";
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        NotificationChannel channel = new NotificationChannel(
+                "notifyCrujientePenguins",
+                name,
+                importance);
+        channel.setDescription(description);
+
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
     }
 
 }

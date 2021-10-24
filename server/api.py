@@ -333,7 +333,7 @@ api.add_resource(RegistrationAPI, '/register')
 api.add_resource(BiddingAPI, '/bidding')
 api.add_resource(CouponAPI, '/coupons')
 api.add_resource(PointsAPI, '/points')
-api.add_resource(OrderAPI, '/points/<int:order_id>')
+api.add_resource(OrderAPI, '/points/<string:order_id>')
 
 
 #

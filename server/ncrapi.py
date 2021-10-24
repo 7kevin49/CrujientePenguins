@@ -59,8 +59,8 @@ class NCRApi:
     image_service: ClassVar[str] = "/image/v1/images"
 
     def api_call(self, method: str, endpoint: str, data=None) -> requests.Response:
-        if data is None:
-            data = dict()
+        # if data is None:
+        #     data = dict()
         headers = {
             "date": datetime.now(timezone.utc).strftime("%a, %d %b %Y %H:%M:%S %Z"),
             "accept": "application/json",

@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity {
 
     public LoginToken sessionToken;
 
+
     private LoginProfile login = new LoginProfile("test", "test");
 
     private UserService service;

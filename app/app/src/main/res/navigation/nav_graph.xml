@@ -16,6 +16,15 @@
             app:destination="@id/SecondFragment" />
     </fragment>
     <fragment
+        android:id="@+id/PostLogin"
+        android:name="com.example.crujientepenguins.PostLogin"
+        tools:layout="@layout/post_login"
+        android:label="Rewards Page">
+
+    </fragment>
+
+
+    <fragment
         android:id="@+id/SecondFragment"
         android:name="com.example.crujientepenguins.SecondFragment"
         android:label="@string/second_fragment_label"
@@ -24,5 +33,8 @@
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"
             app:destination="@id/FirstFragment" />
+        <action
+            android:id="@+id/action_SecondFragment_to_PostLogin"
+            app:destination="@id/PostLogin" />
     </fragment>
 </navigation>

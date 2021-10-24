@@ -5,8 +5,8 @@ import com.google.gson.Gson;
 
 public class LoginProfile {
 
-    @SerializedName("user")
-    private String user_id;
+    @SerializedName("username")
+    private String username;
 
     @SerializedName("password")
     private String password;
@@ -20,7 +20,7 @@ public class LoginProfile {
 //        private String token;
 
     public LoginProfile(String user, String password){
-        this.user_id = user;
+        this.username = user;
         this.password = password;
         this.gson = new Gson();
 //        this.points = points;
@@ -29,5 +29,29 @@ public class LoginProfile {
 
     public String getJson() {
         return gson.toJson(this);
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Gson getGson() {
+        return gson;
+    }
+
+    public void setGson(Gson gson) {
+        this.gson = gson;
     }
 }

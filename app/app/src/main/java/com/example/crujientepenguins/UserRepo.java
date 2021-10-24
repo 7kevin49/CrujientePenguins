@@ -20,8 +20,8 @@ public class UserRepo {
 //        return userService.getUser(json);
 //    }
 
-    public Call<LoginProfile> getUserToken(LoginProfile loginProfile) {
-        String json = gson.toJson(loginProfile);
-        return userService.getUserToken(json);
-    }
+//    public Call<LoginProfile> getUserToken(LoginProfile loginProfile) {
+//        String json = gson.toJson(loginProfile);
+//        return userService.getUserToken(json);
+//    }
 }

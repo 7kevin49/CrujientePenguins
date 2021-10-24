@@ -25,6 +25,8 @@ import android.widget.Toast;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -32,15 +34,12 @@ public class MainActivity extends AppCompatActivity {
     private AppBarConfiguration appBarConfiguration;
     private ActivityMainBinding binding;
 
+    private LoginToken sessionToken;
+
     private LoginProfile login = new LoginProfile("test", "test");
 
     private UserService service;
-
-
-
 //    private UserRepo repo = new UserRepo()
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,8 +56,7 @@ public class MainActivity extends AppCompatActivity {
         binding.fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                hitApiCall();
             }
         });
     }
@@ -76,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        hitApiCall();
+
 
         //noinspection SimplifiableIfStatement
 
@@ -95,17 +93,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hitApiCall() {
-        service = RetrofitClient.getRetrofitInstance().create(UserService.class);
-        Call<LoginProfile> call = service.getUserToken(login.getJson());
-        call.enqueue(new Callback<LoginProfile>() {
+        Retrofit retrofit = new retrofit2.Retrofit.Builder()
+                .baseUrl("http://10.0.2.2:5000/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        service = retrofit.create(UserService.class);
+        Call<LoginToken> call = service.getUserToken(login);
+        call.enqueue(new Callback<LoginToken>() {
             @Override
             public void onResponse
-                    (@NonNull Call < LoginProfile > call, @NonNull Response < LoginProfile > response){
-                LoginProfile login = response.body();
+                    (@NonNull Call <LoginToken> call, @NonNull Response <LoginToken> response){
+                sessionToken = response.body();
+                System.out.println(sessionToken.getToken());
+                Toast.makeText(getApplicationContext(), "Logged In", Toast.LENGTH_SHORT).show();
             }
 
             @Override
-            public void onFailure (@NonNull Call < LoginProfile > call, @NonNull Throwable t){
+            public void onFailure (@NonNull Call <LoginToken> call, @NonNull Throwable t){
 //                progressDialog.dismiss();
                 Toast.makeText(getApplicationContext(), "Failed", Toast.LENGTH_SHORT).show();
             }

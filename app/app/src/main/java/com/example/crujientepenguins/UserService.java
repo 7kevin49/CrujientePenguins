@@ -10,7 +10,7 @@ import retrofit2.http.Path;
 
 public interface UserService {
     @POST("/api/v1/login")
-    Call<LoginProfile> getUserToken(@Body String json);
+    Call<LoginToken> getUserToken(@Body LoginProfile json);
 }
 
 

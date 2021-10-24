@@ -13,21 +13,17 @@ import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
 
 import com.example.crujientepenguins.databinding.ActivityMainBinding;
+import com.example.crujientepenguins.pojos.LoginProfile;
+import com.example.crujientepenguins.pojos.LoginToken;
+import com.example.crujientepenguins.pojos.PointsAvailable;
 
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
-import java.io.IOException;
-
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -97,13 +93,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void hitApiCall() {
-        Retrofit retrofit = new retrofit2.Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:5000/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        service = retrofit.create(UserService.class);
-        Call<LoginToken> call = service.getUserToken(login);
-        call.enqueue(new Callback<LoginToken>() {
+        Api.getInstance().login(login, new Callback<LoginToken>() {
             @Override
             public void onResponse
                     (@NonNull Call <LoginToken> call, @NonNull Response <LoginToken> response){
@@ -121,25 +111,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getPointsAvailable() {
-        OkHttpClient client = new OkHttpClient.Builder().addInterceptor(new Interceptor() {
-            @Override
-            public okhttp3.Response intercept(Chain chain) throws IOException {
-                Request newRequest  = chain.request().newBuilder()
-                        .header("auth_token", "" + sessionToken.getToken())
-                        .build();
-                return chain.proceed(newRequest);
-            }
-        }).build();
-
-        Retrofit retrofit = new retrofit2.Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:5000/")
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-        AuthToken authToken = new AuthToken(sessionToken.getToken());
-        pointsService = retrofit.create(UserServicePoints.class);
-        System.out.println(authToken.getJson());
-        Call<PointsAvailable> call = pointsService.getUserPoints(authToken.getToken());
-        call.enqueue(new Callback<PointsAvailable>() {
+        Api.getInstance().getPoints(sessionToken.getToken(), new Callback<PointsAvailable>() {
             @Override
             public void onResponse
                     (@NonNull Call <PointsAvailable> call, @NonNull Response <PointsAvailable> response){
@@ -155,8 +127,5 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
-
-
 
 }

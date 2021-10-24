@@ -29,6 +29,13 @@ public class SecondFragment extends Fragment {
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        binding.buttonLogIn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                System.out.println(getContext());
+            }
+        });
+
         binding.buttonSecond.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

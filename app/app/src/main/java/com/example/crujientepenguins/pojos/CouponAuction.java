@@ -32,4 +32,11 @@ public class CouponAuction {
     public void setCouponAuction(List<Coupon> couponAuction) {
         this.couponAuction = couponAuction;
     }
+
+    @Override
+    public String toString() {
+        return "CouponAuction{" +
+                "couponAuction=" + couponAuction +
+                '}';
+    }
 }

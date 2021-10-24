@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -18,8 +19,11 @@ import androidx.fragment.app.Fragment;
 import androidx.navigation.fragment.NavHostFragment;
 
 import com.example.crujientepenguins.databinding.PostLoginBinding;
+import com.example.crujientepenguins.pojos.Coupon;
+import com.example.crujientepenguins.pojos.CouponAuction;
 import com.example.crujientepenguins.pojos.PointsAvailable;
 
+import java.util.List;
 import java.util.Objects;
 
 import retrofit2.Call;
@@ -83,6 +87,25 @@ public class PostLogin extends Fragment {
                 Toast.makeText(getContext(), "Error: Points could not be retrieved...", Toast.LENGTH_LONG).show();
             }
         });
+        api.getCouponAuction(new Callback<CouponAuction>() {
+            @Override
+            public void onResponse(Call<CouponAuction> call, Response<CouponAuction> response) {
+                List<Coupon> coupons = response.body().getCouponAuction();
+                coupons.add(0, new Coupon("", 0, "", "", "Coupons up for bid:"));
+                binding.auctionView.removeAllViews();
+                for (Coupon coupon : coupons) {
+                    TextView text = new TextView(getContext());
+                    text.setText(coupon.getDescription());
+                    binding.auctionView.addView(text);
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CouponAuction> call, Throwable t) {
+
+            }
+        });
+
         binding.scanQr.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

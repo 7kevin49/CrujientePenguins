@@ -78,4 +78,15 @@ public class Coupon {
     public void setDescription(String description) {
         this.description = description;
     }
+
+    @Override
+    public String toString() {
+        return "Coupon{" +
+                "id='" + id + '\'' +
+                ", maxBid=" + maxBid +
+                ", winnerId='" + winnerId + '\'' +
+                ", closeoutTime='" + closeoutTime + '\'' +
+                ", description='" + description + '\'' +
+                '}';
+    }
 }

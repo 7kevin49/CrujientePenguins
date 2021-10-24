@@ -4,7 +4,6 @@ from random import choice
 from uuid import uuid4
 
 import jwt
-import yaml
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from flask import Flask, request
@@ -12,9 +11,8 @@ from flask_restful import Resource, Api, reqparse, fields, marshal
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from data import Database, WhereConstraint
-
-with open("apiconfig.yml", "r") as ymlfile:
-    config = yaml.safe_load(ymlfile)
+from ncrapi import NCRApi
+from config import config
 
 #
 # The following variables are for the API configuration
@@ -23,6 +21,7 @@ with open("apiconfig.yml", "r") as ymlfile:
 app = Flask(__name__)
 api = Api(app, prefix="/api/v1")
 database = Database()
+ncr_api = NCRApi(config["ncrapi"]["bsp-organization"], config["ncrapi"]["bsp-site-id"])
 
 bid_fields = {
     "user_id": fields.String,
@@ -40,18 +39,19 @@ coupon_fields = {
 }
 
 # This is the key to encrpy the JSON Web Tokens with
-app.config["SECRET_KEY"] = config["api"].get("SECRET_KEY", "CrujientePenguins")
+app.config["SECRET_KEY"] = config["api"]["SECRET_KEY"]
 
 #
 # The following constants are for configuring the points economy
 #
 
 # Points given to newly registered users
-BASE_POINTS = config["economy"].get("base_points", 100)
+BASE_POINTS = config["economy"]["base_points"]
+PRICE_TO_POINTS_SCALAR = config["economy"]["price_to_points_scale"]
 
 # Auction data
-NUM_AUCTIONS = config["economy"].get("num_active_auctions", 5)
-COUPON_DESCRIPTIONS = config["economy"].get("coupon_descriptions", [""])
+NUM_AUCTIONS = config["economy"]["num_active_auctions"]
+COUPON_DESCRIPTIONS = config["economy"]["coupon_descriptions"]
 
 
 #
@@ -261,7 +261,7 @@ class CouponAPI(Resource):
         else:
             coupons = database.select_from_table(
                 "coupon_auction",
-                ("*", ),
+                ("*",),
                 WhereConstraint("coupon_auction", "closeout_time", f"'{str(datetime.datetime.now())}'", ">")
             )
         converted_coupons = []
@@ -306,11 +306,34 @@ class PointsAPI(Resource):
                                    points_available=next_points)
 
 
+class OrderAPI(Resource):
+    @requires_jwt
+    def post(self, order_id, *args, **kwargs):
+        # Adds points based on an order with specified id
+        uuid = kwargs["uuid"]
+        order = ncr_api.api_call("GET", f"{ncr_api.order_service}/{order_id}")
+        if order.status_code != 200:
+            return {"message": "Problem accessing that order"}, order.status_code
+        order_json = order.json()
+        order_total = sum(total["value"] for total in order_json["totals"])
+        delta_points = int(order_total * PRICE_TO_POINTS_SCALAR)
+        current_points = database.select_from_table("points",
+                                                    ("points_available",),
+                                                    WhereConstraint("points", "user_id", f"'{uuid}'"))[0][0]
+        next_points = current_points + delta_points
+        database.update_table_rows("points",
+                                   WhereConstraint("points", "user_id", f"'{uuid}'"),
+                                   points_available=next_points)
+
+        return {"message": f"Added {delta_points} points!"}
+
+
 api.add_resource(LoginAPI, '/login')
 api.add_resource(RegistrationAPI, '/register')
 api.add_resource(BiddingAPI, '/bidding')
 api.add_resource(CouponAPI, '/coupons')
 api.add_resource(PointsAPI, '/points')
+api.add_resource(OrderAPI, '/points/<int:order_id>')
 
 
 #

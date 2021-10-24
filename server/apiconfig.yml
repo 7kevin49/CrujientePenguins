@@ -1,5 +1,5 @@
 api:
-  SECRET_KEY: CrujientePenguins
+  SECRET_KEY: "CrujientePenguins"
 economy:
   base_points: 100
   num_active_auctions: 5
@@ -13,3 +13,9 @@ economy:
     - 60% off select items
     - 10% off next purchase
     - Free large drink with purchase of meal
+  price_to_points_scale: 0.2
+ncrapi:
+  bsp-organization: "test-drive-6730d904efb049f8b1776"
+  bsp-site-id: "075e68a984974d308307485f127d9a42"
+  bsp-shared-key: "3eaf907a2a3946dba320282ff53f604c"
+  bsp-secret-key: "137166ac3a9d4ee5ad381b6c11ea443c"
